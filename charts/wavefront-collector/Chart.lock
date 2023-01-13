@@ -1,0 +1,6 @@
+dependencies:
+- name: wavefront
+  repository: https://wavefronthq.github.io/helm/
+  version: 1.13.0
+digest: sha256:937c7c14bb13b75e95e1b654f2803e2d39d965ca733d2b0cd353429e916d0fc2
+generated: "2023-01-13T13:16:15.783332+11:00"

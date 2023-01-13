@@ -1,0 +1,9 @@
+apiVersion: v2
+name: vector
+description: A Helm chart to install vector.
+type: application
+version: 0.1.0
+dependencies:
+- name: vector
+  version: 0.18.0
+  repository: https://helm.vector.dev
