@@ -1,0 +1,9 @@
+apiVersion: v2
+name: telegraf
+description: A Helm chart to install telegraf.
+type: application
+version: 0.1.0
+dependencies:
+- name: telegraf
+  version: 1.8.24
+  repository: https://helm.influxdata.com/

@@ -13,3 +13,10 @@ helm dependency update charts/wavefront-collector
 helm upgrade wavefront-collector charts/wavefront-collector --install -f charts/vector/values.yaml --namespace monitoring
 helm uninstall wavefront-collector -n monitoring
 ```
+
+## install telegraf
+```
+helm dependency update charts/telegraf
+helm upgrade telegraf charts/telegraf --install -f charts/vector/values.yaml --namespace monitoring
+helm uninstall telegraf -n monitoring
+```

@@ -1,0 +1,293 @@
+telegraf:
+  ## Default values.yaml for Telegraf
+  ## This is a YAML-formatted file.
+  ## ref: https://hub.docker.com/r/library/telegraf/tags/
+
+  replicaCount: 1
+  image:
+    repo: "quay.io/influxdb/telegraf-nightly"
+    tag: "alpine"
+    pullPolicy: IfNotPresent
+  podAnnotations: {}
+  podLabels: {}
+  imagePullSecrets: []
+  ## Configure args passed to Telegraf containers
+  args: []
+  # The name of a secret in the same kubernetes namespace which contains values to
+  # be added to the environment (must be manually created)
+  # This can be useful for auth tokens, etc.
+
+  # envFromSecret: "telegraf-tokens"
+  env:
+    - name: HOSTNAME
+      value: "telegraf-polling-service"
+  # An older "volumeMounts" key was previously added which will likely
+  # NOT WORK as you expect. Please use this newer configuration.
+
+  # volumes:
+  # - name: telegraf-output-influxdb2
+  #   configMap:
+  #     name: "telegraf-output-influxdb2"
+  # mountPoints:
+  # - name: telegraf-output-influxdb2
+  #   mountPath: /etc/telegraf/conf.d
+  #   subPath: influxdb2.conf
+
+  ## Configure resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+  # requests:
+  #   memory: 128Mi
+  #   cpu: 100m
+  # limits:
+  #   memory: 128Mi
+  #   cpu: 100m
+
+  ## Node labels for pod assignment
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+  ## Affinity for pod assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ##
+  affinity: {}
+  ## Tolerations for pod assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  # - key: "key"
+  #   operator: "Equal|Exists"
+  #   value: "value"
+  #   effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+  service:
+    enabled: false
+    type: ClusterIP
+    annotations: {}
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: true
+    # Create only for the release namespace or cluster wide (Role vs ClusterRole)
+    clusterWide: true
+    # Rules for the created rule
+    rules: 
+      - apiGroups:
+        - ""
+        resources:
+        - nodes
+        - nodes/proxy
+        - nodes/metrics
+        - services
+        - endpoints
+        - pods
+        - ingresses
+        - configmaps
+        verbs:
+        - get
+        - list
+        - watch
+      - apiGroups:
+        - "extensions"
+        - "networking.k8s.io"
+        resources:
+        - ingresses/status
+        - ingresses
+        verbs:
+        - get
+        - list
+        - watch
+      - nonResourceURLs:
+        - "/metrics"
+        verbs:
+        - get
+  # When using the prometheus input to scrape all pods you need extra rules set to the ClusterRole to be
+  # able to scan the pods for scraping labels. The following rules have been taken from:
+  # https://github.com/helm/charts/blob/master/stable/prometheus/templates/server-clusterrole.yaml#L8-L46
+  #    - apiGroups:
+  #        - ""
+  #      resources:
+  #        - nodes
+  #        - nodes/proxy
+  #        - nodes/metrics
+  #        - services
+  #        - endpoints
+  #        - pods
+  #        - ingresses
+  #        - configmaps
+  #      verbs:
+  #        - get
+  #        - list
+  #        - watch
+  #    - apiGroups:
+  #        - "extensions"
+  #      resources:
+  #        - ingresses/status
+  #        - ingresses
+  #      verbs:
+  #        - get
+  #        - list
+  #        - watch
+  #    - nonResourceURLs:
+  #        - "/metrics"
+  #      verbs:
+  #        - get
+
+  serviceAccount:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name:
+    # Annotations for the ServiceAccount
+    annotations: {}
+  ## Exposed telegraf configuration
+  ## For full list of possible values see `/docs/all-config-values.yaml` and `/docs/all-config-values.toml`
+  ## ref: https://docs.influxdata.com/telegraf/v1.1/administration/configuration/
+  config:
+    agent:
+      interval: "10s"
+      round_interval: true
+      metric_batch_size: 5000
+      metric_buffer_limit: 50000
+      collection_jitter: "5m"
+      flush_interval: "10s"
+      flush_jitter: "0s"
+      precision: ""
+      debug: false
+      quiet: false
+      logfile: ""
+      hostname: "$HOSTNAME"
+      omit_hostname: false
+    # processors:
+    #   - enum:
+    #       mapping:
+    #         field: "status"
+    #         dest: "status_code"
+    #         value_mappings:
+    #           healthy: 1
+    #           problem: 2
+    #           critical: 3
+    outputs:
+      # - influxdb:
+      #     urls:
+      #       - "http://influxdb.monitoring.svc:8086"
+      #     database: "telegraf"
+      - wavefront:
+          url: "http://wavefront-collector-proxy.monitoring.svc.cluster.local:2878"
+          prefix: "spinnaker."
+          truncate_tags: true
+          http_maximum_batch_size: 10000
+          metric_separator: "."
+      # - file:
+      #     files:
+      #       - stdout
+      #     data_format: "json"
+
+    inputs:
+      # - statsd:
+      #     service_address: ":8125"
+      #     percentiles:
+      #       - 50
+      #       - 95
+      #       - 99
+      #     metric_separator: "_"
+      #     allowed_pending_messages: 10000
+      #     percentile_limit: 1000
+      - prometheus:
+          metric_version: 1
+          http_headers: 
+            Accept: application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;
+          ## Scrape Pods
+          ## Enable scraping of k8s pods. Further settings as to which pods to scape
+          ## are determiend by the 'method' option below. When enabled, the default is
+          ## to use annotations to determine whether to scrape or not.
+          monitor_kubernetes_pods: true
+
+          ## Scrape Pods Method
+          ## annotations: default, looks for specific pod annotations documented below
+          ## settings: only look for pods matching the settings provided, not
+          ##   annotations
+          ## settings+annotations: looks at pods that match annotations using the user
+          ##   defined settings
+          monitor_kubernetes_pods_method: "annotations"
+          ## https://github.com/influxdata/telegraf/blob/master/docs/CONFIGURATION.md#metric-filtering
+          tagexclude:
+            - 'prometheus.io/scrape'
+            - 'prometheus.io/scheme'
+            - 'prometheus.io/path'
+            - 'prometheus.io/port'
+            - 'pod-template-hash'
+            - 'kubernetes.io/psp'
+
+          ## Scrape Pods 'annotations' method options
+          ## If set method is set to 'annotations' or 'settings+annotations', these
+          ## annotation flags are looked for:
+          ## - prometheus.io/scrape: Required to enable scraping for this pod. Can also
+          ##     use 'prometheus.io/scrape=false' annotation to opt-out entirely.
+          ## - prometheus.io/scheme: If the metrics endpoint is secured then you will
+          ##     need to set this to 'https' & most likely set the tls config
+          ## - prometheus.io/path: If the metrics path is not /metrics, define it with
+          ##     this annotation
+          ## - prometheus.io/port: If port is not 9102 use this annotation
+
+          ## Scrape Pods 'settings' method options
+          ## When using 'settings' or 'settings+annotations', the default values for
+          ## annotations can be modified using with the following options:
+          # monitor_kubernetes_pods_scheme: "http"
+          # monitor_kubernetes_pods_port = "9102"
+          # monitor_kubernetes_pods_path: "/aop-prometheus"
+
+          ## Get the list of pods to scrape with either the scope of
+          ## - cluster: the kubernetes watch api (default, no need to specify)
+          ## - node: the local cadvisor api; for scalability. Note that the config node_ip or the environment variable NODE_IP must be set to the host IP.
+          pod_scrape_scope: "cluster"
+
+          ## Only for node scrape scope: node IP of the node that telegraf is running on.
+          ## Either this config or the environment variable NODE_IP must be set.
+          # node_ip = "10.180.1.1"
+
+          ## Only for node scrape scope: interval in seconds for how often to get updated pod list for scraping.
+          ## Default is 60 seconds.
+          pod_scrape_interval: 60
+
+          ## Restricts Kubernetes monitoring to a single namespace
+          ##   ex: monitor_kubernetes_pods_namespace = "default"
+          monitor_kubernetes_pods_namespace: spinnaker
+          ## The name of the label for the pod that is being scraped.
+          ## Default is 'namespace' but this can conflict with metrics that have the label 'namespace'
+          # pod_namespace_label_name = "namespace"
+          # label selector to target pods which have the label
+          # kubernetes_label_selector = "env=dev,app=nginx"
+          # field selector to target pods
+          # eg. To scrape pods on a specific node
+          # kubernetes_field_selector = "spec.nodeName=$HOSTNAME"
+          
+          # urls:
+          #   - "http://spin-clouddriver.spinnaker.svc.cluster.local:7002/aop-prometheus"
+          #   - "http://spin-fiat.spinnaker.svc.cluster.local:7003/aop-prometheus"
+          #   - "http://spin-echo.spinnaker.svc.cluster.local:8089/aop-prometheus"
+          #   - "http://spin-front50.spinnaker.svc.cluster.local:8080/aop-prometheus"
+          #   - "http://spin-gate.spinnaker.svc.cluster.local:8084/aop-prometheus"
+          #   - "http://spin-igor.spinnaker.svc.cluster.local:8088/aop-prometheus"
+          #   - "http://spin-orca.spinnaker.svc.cluster.local:8083/aop-prometheus"
+          #   - "http://spin-rosco.spinnaker.svc.cluster.local:8087/aop-prometheus"
+  metrics:
+    health:
+      enabled: false
+      service_address: "http://:8888"
+      threshold: 5000.0
+    internal:
+      enabled: true
+      collect_memstats: false
+  # Lifecycle hooks
+  # hooks:
+  #   postStart: ["/bin/sh", "-c", "echo Telegraf started"]
+  #   preStop: ["/bin/sh", "-c", "sleep 60"]
+
+  ## Pod disruption budget configuration
+  ##
+  pdb:
+    ## Specifies whether a Pod disruption budget should be created
+    ##
+    create: true
+    minAvailable: 1
+    # maxUnavailable: 1
