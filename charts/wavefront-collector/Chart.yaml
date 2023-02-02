@@ -1,9 +1,0 @@
-apiVersion: v2
-name: wavefront-collector
-description: A Helm chart to install wavefront collector and wavefront proxy.
-type: application
-version: 0.1.0
-dependencies:
-- name: wavefront
-  version: 1.13.0
-  repository: https://wavefronthq.github.io/helm/

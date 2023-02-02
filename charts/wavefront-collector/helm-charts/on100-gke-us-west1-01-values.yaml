@@ -4,17 +4,16 @@ wavefront:
   ## This is a unique name for the cluster
   ## All metrics will receive a `cluster` tag with this value
   ## Required
-  clusterName: yourcluster
-
+  clusterName: on100-gke-us-west1-01
 
   installationMethod: helm
 
   ## Wavefront URL (cluster) and API Token
   ## Required
+  ## Token lives in the WF UI. Settings --> Accounts --> gke-ninja
   wavefront:
     url: https://okta.wavefront.com
-    token: "xxxxxx"
-
+    token: "xxxxx-xxxxx-xxxxx-xxxxx"
 
   ## Wavefront Collector is responsible to get all Kubernetes metrics from your cluster.
   ## It will capture Kubernetes resources metrics available from the kubelets,
@@ -22,8 +21,8 @@ wavefront:
   collector:
     enabled: true
     image:
-      repository: projects.registry.vmware.com/tanzu_observability/kubernetes-collector
-      tag: "1.13.0"
+      repository: gcr.io/okta-eng-lab/wavefront-collector
+      tag: "1.13.0.0_1674590865_a85aeba"
       pullPolicy: IfNotPresent
 
     ## Set the updateStrategy for the collector deployment or daemonset
@@ -229,7 +228,11 @@ wavefront:
 
   ## Optionally set tolerations for the collector
   ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
-  #  tolerations:
+  tolerations:
+    - effect: NoExecute
+      operator: Exists
+    - effect: NoSchedule
+      operator: Exists
 
 
   ## Wavefront Proxy is a metrics forwarder that is used to relay metrics to the Wavefront SaaS service.

@@ -1,0 +1,19 @@
+test_suites:
+- name: lint
+  script_path: /root/okta/docker/repositories/wavefront-collector/scripts
+  sort_order: '1'
+  timeout: '10'
+  script_name: lint
+  script_env: {
+    }
+  criteria: MERGE
+  queue_name: small
+- name: build
+  script_path: /root/okta/docker/repositories/wavefront-collector/scripts
+  sort_order: '1'
+  timeout: '10'
+  script_name: build
+  script_env: {
+    }
+  criteria: MERGE
+  queue_name: small
