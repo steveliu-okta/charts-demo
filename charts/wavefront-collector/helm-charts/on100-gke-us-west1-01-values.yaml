@@ -13,7 +13,7 @@ wavefront:
   ## Token lives in the WF UI. Settings --> Accounts --> gke-ninja
   wavefront:
     url: https://okta.wavefront.com
-    token: "xxxxx-xxxxx-xxxxx-xxxxx"
+    token: "43304357-8def-4f00-89b0-4538c091e2c8"
 
   ## Wavefront Collector is responsible to get all Kubernetes metrics from your cluster.
   ## It will capture Kubernetes resources metrics available from the kubelets,
