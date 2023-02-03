@@ -21,8 +21,8 @@ wavefront:
   collector:
     enabled: true
     image:
-      repository: gcr.io/okta-eng-lab/wavefront-collector
-      tag: "1.13.0.0_1674590865_a85aeba"
+      repository: projects.registry.vmware.com/tanzu_observability/kubernetes-collector
+      tag: "1.13.0"
       pullPolicy: IfNotPresent
 
     ## Set the updateStrategy for the collector deployment or daemonset
